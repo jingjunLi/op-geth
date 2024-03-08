@@ -288,7 +288,7 @@ func DeleteTrieNode(db ethdb.KeyValueWriter, owner common.Hash, path []byte, has
 // if the state is not present in database.
 func ReadStateScheme(db ethdb.Reader) string {
 	// Check if state in path-based scheme is present
-	blob, _ := ReadAccountTrieNode(db, nil)
+	blob, _ := ReadAccountTrieNode(db.StateStoreReader(), nil)
 	if len(blob) != 0 {
 		return PathScheme
 	}
@@ -299,7 +299,7 @@ func ReadStateScheme(db ethdb.Reader) string {
 	if header == nil {
 		return "" // empty datadir
 	}
-	blob = ReadLegacyTrieNode(db, header.Root)
+	blob = ReadLegacyTrieNode(db.StateStoreReader(), header.Root)
 	if len(blob) == 0 {
 		return "" // no state in disk
 	}

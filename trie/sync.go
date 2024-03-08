@@ -171,7 +171,7 @@ func (batch *syncMemBatch) hasCode(hash common.Hash) bool {
 // and reconstructs the trie step by step until all is done.
 type Sync struct {
 	scheme   string                       // Node scheme descriptor used in database.
-	database ethdb.KeyValueReader         // Persistent database to check for existing entries
+	database ethdb.Database               // Persistent database to check for existing entries
 	membatch *syncMemBatch                // Memory buffer to avoid frequent database writes
 	nodeReqs map[string]*nodeRequest      // Pending requests pertaining to a trie node path
 	codeReqs map[common.Hash]*codeRequest // Pending requests pertaining to a code hash
@@ -180,7 +180,7 @@ type Sync struct {
 }
 
 // NewSync creates a new trie data download scheduler.
-func NewSync(root common.Hash, database ethdb.KeyValueReader, callback LeafCallback, scheme string) *Sync {
+func NewSync(root common.Hash, database ethdb.Database, callback LeafCallback, scheme string) *Sync {
 	ts := &Sync{
 		scheme:   scheme,
 		database: database,
@@ -467,9 +467,9 @@ func (s *Sync) children(req *nodeRequest, object node) ([]*nodeRequest, error) {
 				// the performance impact negligible.
 				var exists bool
 				if owner == (common.Hash{}) {
-					exists = rawdb.ExistsAccountTrieNode(s.database, append(inner, key[:i]...))
+					exists = rawdb.ExistsAccountTrieNode(s.database.StateStoreReader(), append(inner, key[:i]...))
 				} else {
-					exists = rawdb.ExistsStorageTrieNode(s.database, owner, append(inner, key[:i]...))
+					exists = rawdb.ExistsStorageTrieNode(s.database.StateStoreReader(), owner, append(inner, key[:i]...))
 				}
 				if exists {
 					req.deletes = append(req.deletes, key[:i])
