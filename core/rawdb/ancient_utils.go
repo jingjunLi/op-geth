@@ -18,11 +18,11 @@ package rawdb
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/log"
 	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 type tableSize struct {
@@ -126,7 +126,7 @@ func inspectFreezers(db ethdb.Database) ([]freezerInfo, error) {
 
 			info, err := inspect(ProofFreezerName, proofFreezerNoSnappy, f)
 			if err != nil {
-				return nil, nil
+				return nil, err
 			}
 			infos = append(infos, info)
 

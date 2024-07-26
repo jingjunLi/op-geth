@@ -699,7 +699,6 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 	)
 	// Inspect key-value database first.
 	for it.Next() {
-		break
 		var (
 			key  = it.Key()
 			size = common.StorageSize(len(key) + len(it.Value()))
@@ -792,7 +791,6 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 				size  = common.StorageSize(len(key) + len(value))
 			)
 			total += size
-			break
 
 			switch {
 			case IsLegacyTrieNode(key, value):
