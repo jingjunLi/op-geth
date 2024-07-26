@@ -18,11 +18,11 @@ package rawdb
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 type tableSize struct {
@@ -119,13 +119,13 @@ func inspectFreezers(db ethdb.Database) ([]freezerInfo, error) {
 			}
 			f, err := NewProofFreezer(datadir, true)
 			if err != nil {
-				return nil, err
+				log.Warn("If proof keeper is not enabled, there will be no ProofFreezer.")
+				return nil, nil
 			}
 			defer f.Close()
 
 			info, err := inspect(ProofFreezerName, proofFreezerNoSnappy, f)
 			if err != nil {
-				log.Warn("If proof keeper is not enabled, there will be no ProofFreezer.")
 				return nil, nil
 			}
 			infos = append(infos, info)
