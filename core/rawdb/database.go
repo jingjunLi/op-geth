@@ -804,6 +804,8 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 				accountTries.Add(size)
 			case IsStorageTrieNode(key):
 				storageTries.Add(size)
+			case bytes.HasPrefix(key, PreimagePrefix) && len(key) == (len(PreimagePrefix)+common.HashLength):
+				preimages.Add(size)
 			default:
 				var accounted bool
 				for _, meta := range [][]byte{
