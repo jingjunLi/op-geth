@@ -18,6 +18,7 @@ package rawdb
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -814,7 +815,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 					}
 				}
 				if !accounted {
-					log.Info("Database contains unaccounted data unaccounted", "key", key, "size", size)
+					log.Info("Database contains unaccounted data unaccounted", "key", key, "key_hex", hex.EncodeToString(key), "size", size)
 					unaccounted.Add(size)
 				}
 			}
