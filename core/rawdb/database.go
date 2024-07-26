@@ -771,6 +771,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 				}
 			}
 			if !accounted {
+				log.Info("Database contains unaccounted data unaccounted", "key", key, "size", size)
 				unaccounted.Add(size)
 			}
 		}
@@ -780,6 +781,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 			logged = time.Now()
 		}
 	}
+	log.Error("Database contains unaccounted data", "size", unaccounted.size, "count", unaccounted.count)
 	// inspect separate trie db
 	if trieIter != nil {
 		count = 0
@@ -812,6 +814,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 					}
 				}
 				if !accounted {
+					log.Info("Database contains unaccounted data unaccounted", "key", key, "size", size)
 					unaccounted.Add(size)
 				}
 			}
@@ -823,6 +826,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		}
 		log.Info("Inspecting separate state database", "count", count, "elapsed", common.PrettyDuration(time.Since(start)))
 	}
+	log.Error("Database contains unaccounted data after trie", "size", unaccounted.size, "count", unaccounted.count)
 	// inspect separate block db
 	if blockIter != nil {
 		count = 0
@@ -859,6 +863,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 					}
 				}
 				if !accounted {
+					log.Info("Database contains unaccounted data unaccounted", "key", key, "size", size)
 					unaccounted.Add(size)
 				}
 			}
@@ -870,6 +875,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		}
 		log.Info("Inspecting separate block database", "count", count, "elapsed", common.PrettyDuration(time.Since(start)))
 	}
+	log.Error("Database contains unaccounted data after block", "size", unaccounted.size, "count", unaccounted.count)
 	// Display the database statistic of key-value store.
 	stats := [][]string{
 		{"Key-Value store", "Headers", headers.Size(), headers.Count()},
