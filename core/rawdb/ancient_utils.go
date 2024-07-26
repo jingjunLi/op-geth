@@ -82,17 +82,17 @@ func inspectFreezers(db ethdb.Database) ([]freezerInfo, error) {
 	for _, freezer := range freezers {
 		switch freezer {
 		case ChainFreezerName:
-			info, err := inspect(ChainFreezerName, chainFreezerNoSnappy, db)
+			info, err := inspect(ChainFreezerName, chainFreezerNoSnappy, db.BlockStore())
 			if err != nil {
 				return nil, err
 			}
 			infos = append(infos, info)
 
 		case StateFreezerName:
-			if ReadStateScheme(db) != PathScheme || db.StateStore() != nil {
+			if ReadStateScheme(db) != PathScheme {
 				continue
 			}
-			datadir, err := db.AncientDatadir()
+			datadir, err := db.StateStore().AncientDatadir()
 			if err != nil {
 				return nil, err
 			}

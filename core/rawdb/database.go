@@ -699,6 +699,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 	)
 	// Inspect key-value database first.
 	for it.Next() {
+		break
 		var (
 			key  = it.Key()
 			size = common.StorageSize(len(key) + len(it.Value()))
@@ -791,6 +792,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 				size  = common.StorageSize(len(key) + len(value))
 			)
 			total += size
+			break
 
 			switch {
 			case IsLegacyTrieNode(key, value):
@@ -895,7 +897,7 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		{"Light client", "Bloom trie nodes", bloomTrieNodes.Size(), bloomTrieNodes.Count()},
 	}
 	// Inspect all registered append-only file store then.
-	ancients, err := inspectFreezers(db.BlockStore())
+	ancients, err := inspectFreezers(db)
 	if err != nil {
 		return err
 	}
@@ -911,27 +913,6 @@ func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {
 		total += ancient.size()
 	}
 
-	// inspect ancient state in separate trie db if exist
-	if trieIter != nil {
-		stateAncients, err := inspectFreezers(db.StateStore())
-		if err != nil {
-			return err
-		}
-		for _, ancient := range stateAncients {
-			for _, table := range ancient.sizes {
-				if ancient.name == "chain" {
-					break
-				}
-				stats = append(stats, []string{
-					fmt.Sprintf("Ancient store (%s)", strings.Title(ancient.name)),
-					strings.Title(table.name),
-					table.size.String(),
-					fmt.Sprintf("%d", ancient.count()),
-				})
-			}
-			total += ancient.size()
-		}
-	}
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Database", "Category", "Size", "Items"})
 	table.SetFooter([]string{"", "Total", total.String(), " "})
