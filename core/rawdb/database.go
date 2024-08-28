@@ -580,6 +580,48 @@ func (s *stat) Count() string {
 	return s.count.String()
 }
 
+type DataType int
+
+const (
+	StateDataType DataType = iota
+	BlockDataType
+	ChainDataType
+	Unknown
+)
+
+func DataTypeByKey(key []byte) DataType {
+	switch {
+	// state
+	case IsLegacyTrieNode(key, key),
+		bytes.HasPrefix(key, stateIDPrefix) && len(key) == len(stateIDPrefix)+common.HashLength,
+		IsAccountTrieNode(key),
+		IsStorageTrieNode(key):
+		return StateDataType
+
+	// block
+	case bytes.HasPrefix(key, headerPrefix) && len(key) == (len(headerPrefix)+8+common.HashLength),
+		bytes.HasPrefix(key, blockBodyPrefix) && len(key) == (len(blockBodyPrefix)+8+common.HashLength),
+		bytes.HasPrefix(key, blockReceiptsPrefix) && len(key) == (len(blockReceiptsPrefix)+8+common.HashLength),
+		bytes.HasPrefix(key, headerPrefix) && bytes.HasSuffix(key, headerTDSuffix),
+		bytes.HasPrefix(key, headerPrefix) && bytes.HasSuffix(key, headerHashSuffix),
+		bytes.HasPrefix(key, headerNumberPrefix) && len(key) == (len(headerNumberPrefix)+common.HashLength):
+		return BlockDataType
+	default:
+		for _, meta := range [][]byte{
+			fastTrieProgressKey, persistentStateIDKey, trieJournalKey, snapSyncStatusFlagKey} {
+			if bytes.Equal(key, meta) {
+				return StateDataType
+			}
+		}
+		for _, meta := range [][]byte{headHeaderKey, headFinalizedBlockKey, headBlockKey, headFastBlockKey} {
+			if bytes.Equal(key, meta) {
+				return BlockDataType
+			}
+		}
+		return ChainDataType
+	}
+}
+
 // InspectDatabase traverses the entire database and checks the size
 // of all different categories of data.
 func InspectDatabase(db ethdb.Database, keyPrefix, keyStart []byte) error {

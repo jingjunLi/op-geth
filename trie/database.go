@@ -95,7 +95,6 @@ func NewDatabase(diskdb ethdb.Database, config *Config) *Database {
 	} else {
 		triediskdb = diskdb
 	}
-	dbScheme := rawdb.ReadStateScheme(diskdb)
 	if config == nil {
 		config = HashDefaults
 	}

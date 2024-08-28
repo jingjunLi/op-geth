@@ -360,18 +360,27 @@ func (s *Sync) ProcessNode(result NodeSyncResult) error {
 
 // Commit flushes the data stored in the internal membatch out to persistent
 // storage, returning any occurred error.
-func (s *Sync) Commit(dbw ethdb.Batch) error {
+func (s *Sync) Commit(dbw ethdb.Batch, stateBatch ethdb.Batch) error {
 	// Flush the pending node writes into database batch.
 	for path, value := range s.membatch.nodes {
 		owner, inner := ResolvePath([]byte(path))
-		rawdb.WriteTrieNode(dbw, owner, inner, s.membatch.hashes[path], value, s.scheme)
+		if stateBatch != nil {
+			rawdb.WriteTrieNode(stateBatch, owner, inner, s.membatch.hashes[path], value, s.scheme)
+		} else {
+			rawdb.WriteTrieNode(dbw, owner, inner, s.membatch.hashes[path], value, s.scheme)
+		}
+
 	}
 	// Flush the pending node deletes into the database batch.
 	// Please note that each written and deleted node has a
 	// unique path, ensuring no duplication occurs.
 	for path := range s.membatch.deletes {
 		owner, inner := ResolvePath([]byte(path))
-		rawdb.DeleteTrieNode(dbw, owner, inner, common.Hash{} /* unused */, s.scheme)
+		if stateBatch != nil {
+			rawdb.DeleteTrieNode(stateBatch, owner, inner, common.Hash{} /* unused */, s.scheme)
+		} else {
+			rawdb.DeleteTrieNode(dbw, owner, inner, common.Hash{} /* unused */, s.scheme)
+		}
 	}
 	// Flush the pending code writes into database batch.
 	for hash, value := range s.membatch.codes {

@@ -218,7 +218,7 @@ func initGenesis(ctx *cli.Context) error {
 			log.Warn("Multi-database is an experimental feature")
 		}
 
-		triedb := utils.MakeTrieDatabase(ctx, stack, chaindb, ctx.Bool(utils.CachePreimagesFlag.Name), false)
+		triedb := utils.MakeTrieDatabase(ctx, chaindb, ctx.Bool(utils.CachePreimagesFlag.Name), false)
 		defer triedb.Close()
 
 		_, hash, err := core.SetupGenesisBlock(chaindb, triedb, genesis)

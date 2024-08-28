@@ -1211,6 +1211,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 					log.Error("Error writing genesis to ancients", "err", err)
 					return 0, err
 				}
+				size += writeSize
 				log.Info("Wrote genesis to ancients")
 			}
 		}
@@ -1228,6 +1229,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			log.Error("Error importing chain data to ancients", "err", err)
 			return 0, err
 		}
+		size += writeSize
 
 		// Write tx indices if any condition is satisfied:
 		// * If user requires to reserve all tx indices(txlookuplimit=0)
@@ -1466,9 +1468,6 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	wg.Add(1)
 	defer wg.Wait()
 	go func() {
-		if metrics.EnabledExpensive {
-			defer func(start time.Time) { blockCommitTimer.Update(time.Since(start)) }(time.Now())
-		}
 		defer wg.Done()
 		blockBatch := bc.db.BlockStore().NewBatch()
 		start := time.Now()
@@ -1483,7 +1482,6 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 		if err := blockBatch.Write(); err != nil {
 			log.Crit("Failed to write block into disk", "err", err)
 		}
-		blockWriteExternalTimer.UpdateSince(start)
 		log.Debug("blockWriteExternalTimer", "duration", common.PrettyDuration(time.Since(start)), "hash", block.Hash())
 	}()
 
