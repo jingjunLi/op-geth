@@ -71,12 +71,11 @@ const (
 	initializingState = iota
 	runningState
 	closedState
-	blockDbCacheSize           = 256
-	blockDbHandlesMinSize      = 1000
-	blockDbHandlesMaxSize      = 2000
-	chainDbMemoryPercentage    = 50
-	chainDbHandlesPercentage   = 50
-	diffStoreHandlesPercentage = 20
+	blockDbCacheSize         = 512
+	blockDbHandlesMinSize    = 2000
+	blockDbHandlesMaxSize    = 3000
+	chainDbMemoryPercentage  = 50
+	chainDbHandlesPercentage = 50
 )
 
 const StateDBNamespace = "eth/db/statedata/"
