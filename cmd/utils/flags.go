@@ -23,7 +23,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/core/txpool/bundlepool"
 	"math"
 	"math/big"
 	"net"
@@ -34,6 +33,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/core/txpool/bundlepool"
 
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
@@ -483,6 +484,24 @@ var (
 		Name:     "cache",
 		Usage:    "Megabytes of memory allocated to internal caching (default = 4096 mainnet full node, 128 light mode)",
 		Value:    1024,
+		Category: flags.PerfCategory,
+	}
+	ChainDbPecFlag = &cli.IntFlag{
+		Name:     "chain.pec",
+		Usage:    "Megabytes of memory allocated to internal caching (default = 4096 mainnet full node, 128 light mode)",
+		Value:    50,
+		Category: flags.PerfCategory,
+	}
+	BlockDbPecFlag = &cli.IntFlag{
+		Name:     "blockdb.pec",
+		Usage:    "Megabytes of memory allocated to internal caching (default = 4096 mainnet full node, 128 light mode)",
+		Value:    50,
+		Category: flags.PerfCategory,
+	}
+	StatedbPecFlag = &cli.IntFlag{
+		Name:     "state.pec",
+		Usage:    "Megabytes of memory allocated to internal caching (default = 4096 mainnet full node, 128 light mode)",
+		Value:    50,
 		Category: flags.PerfCategory,
 	}
 	CacheDatabaseFlag = &cli.IntFlag{
@@ -1893,7 +1912,16 @@ func SetEthConfig(ctx *cli.Context, stack *node.Node, cfg *ethconfig.Config) {
 	if ctx.IsSet(CacheFlag.Name) || ctx.IsSet(CacheDatabaseFlag.Name) {
 		cfg.DatabaseCache = ctx.Int(CacheFlag.Name) * ctx.Int(CacheDatabaseFlag.Name) / 100
 	}
-	cfg.DatabaseHandles = MakeDatabaseHandles(ctx.Int(FDLimitFlag.Name))
+	if ctx.IsSet(BlockDbPecFlag.Name) {
+		cfg.BlockDbCachePer = ctx.Int(BlockDbPecFlag.Name)
+	}
+	if ctx.IsSet(StatedbPecFlag.Name) {
+		cfg.StateDbCachePer = ctx.Int(StatedbPecFlag.Name)
+	}
+	if ctx.IsSet(ChainDbPecFlag.Name) {
+		cfg.ChaindbCachePer = ctx.Int(ChainDbPecFlag.Name)
+	}
+
 	if ctx.IsSet(AncientFlag.Name) {
 		cfg.DatabaseFreezer = ctx.String(AncientFlag.Name)
 	}

@@ -45,6 +45,9 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		SkipBcVersionCheck                      bool                   `toml:"-"`
 		DatabaseHandles                         int                    `toml:"-"`
 		DatabaseCache                           int
+		BlockDbCachePer                         int `toml:",omitempty"`
+		StateDbCachePer                         int `toml:",omitempty"`
+		ChaindbCachePer                         int `toml:",omitempty"`
 		DatabaseFreezer                         string
 		TrieCleanCache                          int
 		TrieDirtyCache                          int
@@ -106,6 +109,9 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
+	enc.BlockDbCachePer = c.BlockDbCachePer
+	enc.StateDbCachePer = c.StateDbCachePer
+	enc.ChaindbCachePer = c.ChaindbCachePer
 	enc.DatabaseFreezer = c.DatabaseFreezer
 	enc.TrieCleanCache = c.TrieCleanCache
 	enc.TrieDirtyCache = c.TrieDirtyCache
@@ -171,6 +177,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		SkipBcVersionCheck                      *bool                  `toml:"-"`
 		DatabaseHandles                         *int                   `toml:"-"`
 		DatabaseCache                           *int
+		BlockDbCachePer                         *int `toml:",omitempty"`
+		StateDbCachePer                         *int `toml:",omitempty"`
+		ChaindbCachePer                         *int `toml:",omitempty"`
 		DatabaseFreezer                         *string
 		TrieCleanCache                          *int
 		TrieDirtyCache                          *int
@@ -286,6 +295,15 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.DatabaseCache != nil {
 		c.DatabaseCache = *dec.DatabaseCache
+	}
+	if dec.BlockDbCachePer != nil {
+		c.BlockDbCachePer = *dec.BlockDbCachePer
+	}
+	if dec.StateDbCachePer != nil {
+		c.StateDbCachePer = *dec.StateDbCachePer
+	}
+	if dec.ChaindbCachePer != nil {
+		c.ChaindbCachePer = *dec.ChaindbCachePer
 	}
 	if dec.DatabaseFreezer != nil {
 		c.DatabaseFreezer = *dec.DatabaseFreezer

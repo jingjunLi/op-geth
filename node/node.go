@@ -71,11 +71,11 @@ const (
 	initializingState = iota
 	runningState
 	closedState
-	blockDbCacheSize         = 512
+	blockDbCacheSize         = 1024
 	blockDbHandlesMinSize    = 2000
 	blockDbHandlesMaxSize    = 3000
-	chainDbMemoryPercentage  = 50
-	chainDbHandlesPercentage = 50
+	chainDbMemoryPercentage  = 100
+	chainDbHandlesPercentage = 100
 )
 
 const StateDBNamespace = "eth/db/statedata/"
@@ -749,17 +749,30 @@ func (n *Node) OpenDatabase(name string, cache, handles int, namespace string, r
 	return db, err
 }
 
-func (n *Node) OpenAndMergeDatabase(name string, namespace string, readonly bool, databaseCache, databaseHandles int, databaseFreezer string) (ethdb.Database, error) {
+func (n *Node) OpenAndMergeDatabase(name string, namespace string, readonly bool, databaseCache, databaseHandles int, databaseFreezer string, chaindbMemoryPec, blockdbPec, statedbPec int) (ethdb.Database, error) {
 	var (
-		err                          error
-		stateDiskDb                  ethdb.Database
-		blockDb                      ethdb.Database
-		disableChainDbFreeze         = false
-		blockDbHandlesSize           int
+		err                  error
+		stateDiskDb          ethdb.Database
+		blockDb              ethdb.Database
+		disableChainDbFreeze = false
+		//blockDbHandlesSize           int
 		chainDataHandles             = databaseHandles
 		chainDbCache                 = databaseCache
 		stateDbCache, stateDbHandles int
+		blockDbCache, blockdbHandles int
 	)
+
+	if chaindbMemoryPec == 0 {
+		chaindbMemoryPec = 50
+	}
+	if statedbPec == 0 {
+		statedbPec = 50
+	}
+	if blockdbPec == 0 {
+		blockdbPec = 50
+	}
+
+	log.Warn("Multi-database is an experimental feature ", "chaindb percent:", chaindbMemoryPec, "statedb percent:", statedbPec, "blockdb percent", blockdbPec)
 
 	isMultiDatabase := n.CheckIfMultiDataBase()
 	// Open the separated state database if the state directory exists
@@ -768,16 +781,20 @@ func (n *Node) OpenAndMergeDatabase(name string, namespace string, readonly bool
 		// 1) Allocate a fixed percentage of memory for chainDb based on chainDbMemoryPercentage & chainDbHandlesPercentage.
 		// 2) Allocate a fixed size for blockDb based on blockDbCacheSize & blockDbHandlesSize.
 		// 3) Allocate the remaining resources to stateDb.
-		chainDbCache = int(float64(databaseCache) * chainDbMemoryPercentage / 100)
-		chainDataHandles = int(float64(databaseHandles) * chainDbHandlesPercentage / 100)
-		if databaseHandles/10 > blockDbHandlesMaxSize {
-			blockDbHandlesSize = blockDbHandlesMaxSize
-		} else {
-			blockDbHandlesSize = blockDbHandlesMinSize
-		}
-		stateDbCache = databaseCache - chainDbCache - blockDbCacheSize
-		stateDbHandles = databaseHandles - chainDataHandles - blockDbHandlesSize
+		chainDbCache = int(float64(databaseCache) * float64(chaindbMemoryPec) / 100)
+		chainDataHandles = int(float64(databaseHandles) * float64(chaindbMemoryPec) / 100)
+
+		//if databaseHandles/10 > blockDbHandlesMaxSize {
+		//	blockDbHandlesSize = blockDbHandlesMaxSize
+		//} else {
+		//	blockDbHandlesSize = blockDbHandlesMinSize
+		//}
+		stateDbCache = int(float64(databaseCache) * float64(statedbPec) / 100)
+		stateDbHandles = int(float64(databaseHandles) * float64(statedbPec) / 100)
 		disableChainDbFreeze = true
+
+		blockDbCache = int(float64(databaseCache) * float64(blockdbPec) / 100)
+		blockdbHandles = int(float64(databaseHandles) * float64(blockdbPec) / 100)
 	}
 
 	chainDB, err := n.OpenDatabaseWithFreezer(name, chainDbCache, chainDataHandles, databaseFreezer, namespace, readonly, disableChainDbFreeze)
@@ -792,7 +809,7 @@ func (n *Node) OpenAndMergeDatabase(name string, namespace string, readonly bool
 			return nil, err
 		}
 
-		blockDb, err = n.OpenDatabaseWithFreezer(name+"/block", blockDbCacheSize, blockDbHandlesSize, "", "eth/db/blockdata/", readonly, false)
+		blockDb, err = n.OpenDatabaseWithFreezer(name+"/block", blockDbCache, blockdbHandles, "", "eth/db/blockdata/", readonly, false)
 		if err != nil {
 			return nil, err
 		}

@@ -114,6 +114,9 @@ var (
 		utils.LegacyWhitelistFlag, // deprecated
 		utils.BloomFilterSizeFlag,
 		utils.CacheFlag,
+		utils.ChainDbPecFlag,
+		utils.BlockDbPecFlag,
+		utils.StatedbPecFlag,
 		utils.CacheDatabaseFlag,
 		utils.CacheTrieFlag,
 		utils.CacheTrieJournalFlag,   // deprecated
