@@ -772,8 +772,6 @@ func (n *Node) OpenAndMergeDatabase(name string, namespace string, readonly bool
 		blockdbPec = 50
 	}
 
-	log.Warn("Multi-database is an experimental feature ", "chaindb percent:", chaindbMemoryPec, "statedb percent:", statedbPec, "blockdb percent", blockdbPec)
-
 	isMultiDatabase := n.CheckIfMultiDataBase()
 	// Open the separated state database if the state directory exists
 	if isMultiDatabase {
@@ -795,6 +793,10 @@ func (n *Node) OpenAndMergeDatabase(name string, namespace string, readonly bool
 
 		blockDbCache = int(float64(databaseCache) * float64(blockdbPec) / 100)
 		blockdbHandles = int(float64(databaseHandles) * float64(blockdbPec) / 100)
+		log.Warn("Multi-database is an experimental feature ", "databasecache", databaseCache,
+			"chaindb cache:", chainDbCache, "statedb cache:", stateDbCache, "blockdb cache:", blockDbCache,
+			"chaindb percent:", chaindbMemoryPec, "statedb percent:", statedbPec, "blockdb percent", blockdbPec)
+
 	}
 
 	chainDB, err := n.OpenDatabaseWithFreezer(name, chainDbCache, chainDataHandles, databaseFreezer, namespace, readonly, disableChainDbFreeze)
