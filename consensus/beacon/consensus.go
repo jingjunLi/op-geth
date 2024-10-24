@@ -396,6 +396,7 @@ func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, hea
 			return nil, errors.New("withdrawals set before Shanghai activation")
 		}
 	}
+	// 读写 state
 	// Finalize and assemble the block.
 	beacon.Finalize(chain, header, state, txs, uncles, withdrawals)
 

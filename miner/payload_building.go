@@ -166,6 +166,7 @@ func (payload *Payload) update(r *newPayloadResult, elapsed time.Duration, postF
 				postFunc()
 			}
 		}
+		// step 1-4: build a payload
 		buildBlockTimer.Update(elapsed)
 	}
 }
@@ -351,6 +352,9 @@ func (w *worker) buildPayload(args *BuildPayloadArgs) (*Payload, error) {
 			// getSealingBlock is interrupted by shared interrupt
 			r := w.getSealingBlock(fullParams)
 			dur := time.Since(start)
+			/*
+				dur 是getSealingBlock 时间 ??
+			*/
 			// update handles error case
 			payload.update(r, dur, func() {
 				w.cacheMiningBlock(r.block, r.env)

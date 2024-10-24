@@ -578,6 +578,9 @@ func (api *ConsensusAPI) NewPayloadV3(params engine.ExecutableData, versionedHas
 	return api.newPayload(params, versionedHashes, beaconRoot)
 }
 
+/*
+读取 block 数据, 然后 insert chain ??
+*/
 func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashes []common.Hash, beaconRoot *common.Hash) (engine.PayloadStatusV1, error) {
 	start := time.Now()
 	defer func() {
@@ -601,6 +604,7 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 	api.newPayloadLock.Lock()
 	defer api.newPayloadLock.Unlock()
 
+	// 1. 内存
 	log.Trace("Engine API request received", "method", "NewPayload", "number", params.Number, "hash", params.BlockHash)
 	block, err := engine.ExecutableDataToBlock(params, versionedHashes, beaconRoot)
 	if err != nil {
@@ -612,6 +616,7 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 	api.lastNewPayloadUpdate = time.Now()
 	api.lastNewPayloadLock.Unlock()
 
+	// 1. 一次 IO 读取 BlockHash -> block, blockdb
 	// If we already have the block locally, ignore the entire execution and just
 	// return a fake success.
 	if block := api.eth.BlockChain().GetBlockByHash(params.BlockHash); block != nil {
@@ -629,12 +634,14 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 	// our live chain. As such, payload execution will not permit reorgs and thus
 	// will not trigger a sync cycle. That is fine though, if we get a fork choice
 	// update after legit payload executions.
+	// 2. 读取 BlockHash -> block, blockdb
 	parent := api.eth.BlockChain().GetBlock(block.ParentHash(), block.NumberU64()-1)
 	if parent == nil {
 		return api.delayPayloadImport(block)
 	}
 	// We have an existing parent, do some sanity checks to avoid the beacon client
 	// triggering too early
+	// 3. td * 2  blockdb;
 	var (
 		ptd  = api.eth.BlockChain().GetTd(parent.Hash(), parent.NumberU64())
 		ttd  = api.eth.BlockChain().Config().TerminalTotalDifficulty
@@ -659,6 +666,7 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 	if api.eth.SyncMode() != downloader.FullSync {
 		return api.delayPayloadImport(block)
 	}
+	// 4 io blockdb ->
 	if !api.eth.BlockChain().HasBlockAndState(block.ParentHash(), block.NumberU64()-1) {
 		api.remoteBlocks.put(block.Hash(), block.Header())
 
@@ -670,6 +678,7 @@ func (api *ConsensusAPI) newPayload(params engine.ExecutableData, versionedHashe
 		return engine.PayloadStatusV1{Status: engine.ACCEPTED}, nil
 	}
 	log.Trace("Inserting block without sethead", "hash", block.Hash(), "number", block.Number)
+	// 5. io & insert chain
 	if err := api.eth.BlockChain().InsertBlockWithoutSetHead(block); err != nil {
 		log.Warn("NewPayloadV1: inserting block failed", "error", err)
 

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ethereum/go-ethereum/consensus/misc"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -28,7 +29,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
-	"github.com/ethereum/go-ethereum/consensus/misc"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip1559"
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core"
@@ -1077,6 +1077,9 @@ func (w *worker) validateParams(genParams *generateParams) (time.Duration, error
 // prepareWork constructs the sealing task according to the given parameters,
 // either based on the last chain head or specified parent. In this function
 // the pending transactions are not filled yet, only the empty task returned.
+/*
+
+ */
 func (w *worker) prepareWork(genParams *generateParams) (*environment, error) {
 	w.mu.RLock()
 	defer w.mu.RUnlock()
@@ -1236,6 +1239,16 @@ func (w *worker) fillTransactions(interrupt *atomic.Int32, env *environment) err
 }
 
 // generateWork generates a sealing block based on the given parameters.
+/*
+1. prepareWork
+2. commitTransaction -> commitDepositTxsTimer
+forced transactions done, fill rest of block with transactions
+fillTransactions
+
+step 1-4: build a payload
+
+commitDepositTxsTimer +assembleBlockTimer
+*/
 func (w *worker) generateWork(genParams *generateParams) *newPayloadResult {
 	// TODO delete after debug performance metrics
 	core.DebugInnerExecutionDuration = 0
@@ -1272,6 +1285,7 @@ func (w *worker) generateWork(genParams *generateParams) *newPayloadResult {
 		}
 		work.tcount++
 	}
+	// step 1: commit deposit tx -- 很快 几乎没有慢
 	commitDepositTxsTimer.UpdateSince(start)
 	log.Debug("commitDepositTxsTimer", "duration", common.PrettyDuration(time.Since(start)), "parentHash", genParams.parentHash)
 
@@ -1333,6 +1347,7 @@ func (w *worker) generateWork(genParams *generateParams) *newPayloadResult {
 		return &newPayloadResult{err: fmt.Errorf("empty block root")}
 	}
 
+	// step 4: assemble block optimism-l2-opbnb-qa-sequencer-md-0-0 慢了一半
 	assembleBlockTimer.UpdateSince(start)
 	log.Debug("assembleBlockTimer", "duration", common.PrettyDuration(time.Since(start)), "parentHash", genParams.parentHash)
 
@@ -1345,6 +1360,7 @@ func (w *worker) generateWork(genParams *generateParams) *newPayloadResult {
 	accountHashTimer.Update(work.state.AccountHashes)                // Account hashes are complete(in FinalizeAndAssemble)
 	storageHashTimer.Update(work.state.StorageHashes)                // Storage hashes are complete(in FinalizeAndAssemble)
 
+	//step 3-1: commit pool txt (evm call)
 	innerExecutionTimer.Update(core.DebugInnerExecutionDuration)
 
 	log.Debug("build payload statedb metrics", "parentHash", genParams.parentHash, "accountReads", common.PrettyDuration(work.state.AccountReads), "storageReads", common.PrettyDuration(work.state.StorageReads), "snapshotAccountReads", common.PrettyDuration(work.state.SnapshotAccountReads), "snapshotStorageReads", common.PrettyDuration(work.state.SnapshotStorageReads), "accountUpdates", common.PrettyDuration(work.state.AccountUpdates), "storageUpdates", common.PrettyDuration(work.state.StorageUpdates), "accountHashes", common.PrettyDuration(work.state.AccountHashes), "storageHashes", common.PrettyDuration(work.state.StorageHashes))
