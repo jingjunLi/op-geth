@@ -28,6 +28,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/lru"
 	"github.com/ethereum/go-ethereum/common/mclock"
@@ -50,7 +52,6 @@ import (
 	"github.com/ethereum/go-ethereum/triedb"
 	"github.com/ethereum/go-ethereum/triedb/hashdb"
 	"github.com/ethereum/go-ethereum/triedb/pathdb"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -164,8 +165,9 @@ type CacheConfig struct {
 	KeepProofBlockSpan   uint64                // Block span of keep proof
 	SnapshotNoBuild      bool                  // Whether the background generation is allowed
 	SnapshotWait         bool                  // Wait for snapshot construction on startup. TODO(karalabe): This is a dirty hack for testing, nuke it
-	JournalFilePath      string
-	JournalFile          bool
+	JournalFilePath      string                // The file path to journal pathdb diff layers
+	JournalFile          bool                  // Whether to enable journal file
+	UseBase              bool                  // Flag if just use base for nodebufferlist
 
 	TrieCommitInterval uint64 // Define a block height interval, commit trie every TrieCommitInterval block height.
 }
@@ -397,6 +399,31 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, genesis *Genesis
 	// Make sure the state associated with the block is available, or log out
 	// if there is no available state, waiting for state sync.
 	head := bc.CurrentBlock()
+
+	// Fix pbss snapshot if needed
+	if bc.triedb.Scheme() == rawdb.PathScheme {
+		log.Debug("pbss snapshot validation")
+		currentSafe := bc.CurrentSafeBlock()
+		currentFinalize := bc.CurrentFinalBlock()
+
+		// Check if either safe or finalized block is ahead of the head block
+		if currentSafe != nil && currentFinalize != nil {
+			if currentSafe.Number.Uint64() > head.Number.Uint64() || currentFinalize.Number.Uint64() > head.Number.Uint64() {
+				log.Info("current unsafe is behind safe, reset")
+				bc.HeaderChainForceSetHead(head.Number.Uint64())
+
+				// Update the safe and finalized block conditionally
+				if currentSafe.Number.Uint64() > head.Number.Uint64() {
+					bc.SetSafe(head)
+				}
+				if currentFinalize.Number.Uint64() > head.Number.Uint64() {
+					bc.SetFinalized(head)
+				}
+			}
+		}
+
+	}
+
 	if !bc.NoTries() && !bc.HasState(head.Root) {
 		if head.Number.Uint64() == 0 {
 			// The genesis state is missing, which is only possible in the path-based

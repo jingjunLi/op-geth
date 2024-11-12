@@ -35,7 +35,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/core/txpool/bundlepool"
-
 	pcsclite "github.com/gballet/go-libpcsclite"
 	gopsutil "github.com/shirou/gopsutil/mem"
 	"github.com/urfave/cli/v2"
@@ -94,6 +93,12 @@ var (
 		Name:     "datadir",
 		Usage:    "Data directory for the databases and keystore",
 		Value:    flags.DirectoryString(node.DefaultDataDir()),
+		Category: flags.EthCategory,
+	}
+	MultiDataBaseFlag = &cli.BoolFlag{
+		Name: "multidatabase",
+		Usage: "Enable a separated state and block database, it will be created within two subdirectory called state and block, " +
+			"Users can copy this state or block directory to another directory or disk, and then create a symbolic link to the state directory under the chaindata",
 		Category: flags.EthCategory,
 	}
 	MultiDataBaseFlag = &cli.BoolFlag{
@@ -332,7 +337,7 @@ var (
 	PathDBNodeBufferTypeFlag = &cli.StringFlag{
 		Name:     "pathdb.nodebuffer",
 		Usage:    "Type of trienodebuffer to cache trie nodes in disklayer('list', 'sync', or 'async')",
-		Value:    "async",
+		Value:    "list",
 		Category: flags.StateCategory,
 	}
 	ProposeBlockIntervalFlag = &cli.Uint64Flag{
@@ -2372,11 +2377,11 @@ func MakeChainDatabase(ctx *cli.Context, stack *node.Node, readonly bool) ethdb.
 func MakeStateDataBase(ctx *cli.Context, stack *node.Node, readonly bool) ethdb.Database {
 	cache := ctx.Int(CacheFlag.Name) * ctx.Int(CacheDatabaseFlag.Name) / 100
 	handles := MakeDatabaseHandles(ctx.Int(FDLimitFlag.Name)) * 90 / 100
-	statediskdb, err := stack.OpenDatabaseWithFreezer("chaindata/state", cache, handles, "", "", readonly, true)
+	stateDiskDb, err := stack.OpenDatabaseWithFreezer("chaindata/state", cache, handles, "", "", readonly, true)
 	if err != nil {
 		Fatalf("Failed to open separate trie database: %v", err)
 	}
-	return statediskdb
+	return stateDiskDb
 }
 
 // MakeBlockDatabase open a separate block database using the flags passed to the client and will hard crash if it fails.
@@ -2571,7 +2576,8 @@ func MakeConsolePreloads(ctx *cli.Context) []string {
 }
 
 // MakeTrieDatabase constructs a trie database based on the configured scheme.
-func MakeTrieDatabase(ctx *cli.Context, stack *node.Node, disk ethdb.Database, preimage bool, readOnly bool, isVerkle bool) *triedb.Database {
+func MakeTrieDatabase(ctx *cli.Context, stack *node.Node, disk ethdb.Database, preimage bool, readOnly bool, isVerkle bool,
+	useBase bool) *triedb.Database {
 	config := &triedb.Config{
 		Preimages: preimage,
 		IsVerkle:  isVerkle,
@@ -2592,6 +2598,7 @@ func MakeTrieDatabase(ctx *cli.Context, stack *node.Node, disk ethdb.Database, p
 	} else {
 		config.PathDB = pathdb.Defaults
 	}
+	config.PathDB.UseBase = useBase
 	config.PathDB.JournalFilePath = fmt.Sprintf("%s/%s", stack.ResolvePath("chaindata"), eth.JournalFileName)
 	return triedb.NewDatabase(disk, config)
 }

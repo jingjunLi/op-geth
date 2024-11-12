@@ -132,7 +132,8 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", ethconfig.Defaults.Miner.GasPrice)
 		config.Miner.GasPrice = new(big.Int).Set(ethconfig.Defaults.Miner.GasPrice)
 	}
-	if config.NoPruning && config.TrieDirtyCache > 0 {
+
+	if config.StateScheme == rawdb.HashScheme && config.NoPruning && config.TrieDirtyCache > 0 {
 		if config.SnapshotCache > 0 {
 			config.TrieCleanCache += config.TrieDirtyCache * 3 / 5
 			config.SnapshotCache += config.TrieDirtyCache * 2 / 5
@@ -158,7 +159,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 		"snapshot_cache", common.StorageSize(config.SnapshotCache)*1024*1024)
 	// Assemble the Ethereum object
 	chainDb, err := stack.OpenAndMergeDatabase("chaindata", ChainDBNamespace, false, config.DatabaseCache, config.DatabaseHandles,
-		config.DatabaseFreezer, config.ChaindbCachePer, config.BlockDbCachePer, config.StateDbCachePer)
+		config.DatabaseFreezer)
 	if err != nil {
 		return nil, err
 	}
@@ -247,7 +248,7 @@ func New(stack *node.Node, config *ethconfig.Config) (*Ethereum, error) {
 			Preimages:            config.Preimages,
 			NoTries:              config.NoTries,
 			StateHistory:         config.StateHistory,
-			StateScheme:          scheme,
+			StateScheme:          config.StateScheme,
 			TrieCommitInterval:   config.TrieCommitInterval,
 			PathNodeBuffer:       config.PathNodeBuffer,
 			ProposeBlockInterval: config.ProposeBlockInterval,
